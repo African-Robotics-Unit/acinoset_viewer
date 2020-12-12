@@ -199,7 +199,7 @@ class PageOne(tk.Frame):
 
         axes_list = [a_2d_1, a_2d_2, a_2d_3, a_2d_4, a_2d_5, a_2d_6]
 
-        frame_no = 30
+        self.frame = 0
         x_free = tk.IntVar()
         y_free = tk.IntVar()
         z_free = tk.IntVar()
@@ -209,6 +209,9 @@ class PageOne(tk.Frame):
         dof_dict = {}
         skel_dict = {}
         links_list = []
+
+        self.points_3d_df={}
+        self.points_2d_df={}
 
         # --- Define functions to be used by GUI components ---
 
@@ -237,6 +240,10 @@ class PageOne(tk.Frame):
             sba_dir = controller.sba_dir
             vid = controller.vid
 
+            markers = ["r_eye", "l_eye", "nose", "neck_base", "r_shoulder", "r_front_knee", "r_front_ankle", "spine",
+             "tail_base", "r_hip", "r_back_knee", "r_back_ankle", "tail1", "tail2", "l_shoulder", "l_front_knee",
+              "l_front_ankle", "l_hip", "l_back_knee", "l_back_ankle"]
+
             K_arr, D_arr, R_arr, t_arr, _ = utils.load_scene(sba_dir)
             D_arr = D_arr.reshape((-1,4))
 
@@ -246,17 +253,21 @@ class PageOne(tk.Frame):
             h5_paths=[]
             for folder in folder_paths:
                 h5_paths.append(glob.glob(os.path.join(folder, "*.h5"))[0])
-            points_2d_df = utils.create_dlc_points_2d_file(h5_paths)
-            print(points_2d_df)
+            self.points_2d_df = utils.create_dlc_points_2d_file(h5_paths)
+            print(self.points_2d_df)
             triangulate_func = calib.triangulate_points_fisheye
-            points_3d_df = calib.get_pairwise_3d_points_from_df(points_2d_df, K_arr, D_arr, R_arr, t_arr, triangulate_func)
-            frame = np.min(points_3d_df["frame"])
-            plot_cheetah(frame, points_3d_df, points_2d_df)
+            self.points_3d_df = calib.get_pairwise_3d_points_from_df(self.points_2d_df, K_arr, D_arr, R_arr, t_arr, triangulate_func)
+            self.points_3d_df = self.points_3d_df[self.points_3d_df["marker"].isin(markers)]
+            self.frame = int(np.min(self.points_3d_df["frame"]))
+            label_frame.configure(text=self.frame)
+            plot_cheetah(self.frame, self.points_3d_df, self.points_2d_df)
         
         def plot_cheetah(frame, df_3d, df_2d) -> None:
 
             K_arr, D_arr, R_arr, t_arr, _ = utils.load_scene(controller.sba_dir)
             D_arr = D_arr.reshape((-1,4))
+
+            label_frame.configure(text=frame)
 
             markers = ["r_eye", "l_eye", "nose", "neck_base", "r_shoulder", "r_front_knee", "r_front_ankle", "spine",
              "tail_base", "r_hip", "r_back_knee", "r_back_ankle", "tail1", "tail2", "l_shoulder", "l_front_knee",
@@ -265,15 +276,15 @@ class PageOne(tk.Frame):
             links = [[0,2], [1,2], [2,3], [3,4], [4,5], [5,6], [3,7], [7,8], [8,9], [9,10], [10,11], [8,12], [12,13],
              [14, 3], [14,15], [15,16], [8,17], [17,18], [18,19]]
 
-            df_3d = df_3d[df_3d.marker.isin(markers)]
-            print(df_3d)
+            #df_3d = df_3d[df_3d["marker"].isin(markers)]
+            #print(df_3d)
             pts3d = []
-            pts3d.append(np.array([df_3d[df_3d["frame"]==frame][["x", "y", "z"]].values]))
+            pts3d.append(np.array([df_3d[df_3d["frame"]==str(frame)][["x", "y", "z"]].values]))
             pts3d = np.array(pts3d)
 
             for part in markers:
                 pts = df_3d[df_3d["marker"]==part][df_3d["frame"]==str(frame)][["x", "y", "z"]].values
-                print(pts)
+                #print(pts)
                 parts_dict[part] = [pts[0][0], pts[0][1], pts[0][2]]
                 points_dict[part] = a.scatter(parts_dict[part][0],parts_dict[part][1],parts_dict[part][2])
             
@@ -289,7 +300,7 @@ class PageOne(tk.Frame):
             print(image_tails)
             for i, axis in enumerate(axes_list):
                 cam=i+1
-                print("CAM"+str(cam))
+                #print("CAM"+str(cam))
                 pts_2d_cam = []
                 for tail in image_tails:
                     if "CAM"+str(cam) in tail and str(frame) in tail:
@@ -297,7 +308,7 @@ class PageOne(tk.Frame):
                         image = img.imread(image_path)
                         axis.imshow(image)
                         pts_2d_cam.append(calib.project_points_fisheye(pts3d, K_arr[i],D_arr[i],R_arr[i],t_arr[i]))
-                        print(pts_2d_cam)
+                        #print(pts_2d_cam)
                         x_s = []
                         y_s = []
                         for point in pts_2d_cam[0]:
@@ -333,11 +344,12 @@ class PageOne(tk.Frame):
             a.view_init(elev=20., azim=azimuth-10)
             update_canvas()
         
-        def move_point(part_to_move, frame) -> None:
+        def move_point() -> None:
             """
             Moves/places the selected point to the defined x, y, z
             """
-            #part_to_move = combo_move.get()
+            part_to_move = combo_move.get()
+            frame = self.frame
 
             if part_to_move in points_dict:
                 point_to_move = points_dict[part_to_move]
@@ -346,31 +358,57 @@ class PageOne(tk.Frame):
             new_x = float(x_spin.get())
             new_y = float(y_spin.get())
             new_z = float(z_spin.get())
+            print(self.points_3d_df.keys())
+            vals = self.points_3d_df[self.points_3d_df["marker"]==part_to_move][self.points_3d_df["frame"]==str(frame)][["x", "y", "z"]].values
+            print(vals[0])
+            self.points_3d_df = self.points_3d_df.replace(vals[0][0], new_x)
+            self.points_3d_df = self.points_3d_df.replace(vals[0][1], new_y)
+            self.points_3d_df = self.points_3d_df.replace(vals[0][2], new_z)
+            vals = self.points_3d_df[self.points_3d_df["marker"]==part_to_move][self.points_3d_df["frame"]==str(frame)][["x", "y", "z"]].values
+            print(vals[0])
 
             points_dict[part_to_move] = a.scatter(new_x,new_y, new_z)
             parts_dict[part_to_move] = [new_x, new_y, new_z]
 
-            update_canvas()
+            plot_cheetah(self.frame, self.points_3d_df, self.points_2d_df)
 
-        def save_skeleton() -> None:
+        def save_labels() -> None:
             """
             Writes the currently built skeleton to a pickle file
             """
             currdir = os.getcwd()
+            results_file = os.path.join(currdir, "results", controller.vid+".pickle")
+            file_data = self.points_3d_df
+            with open(results_file, 'wb') as f:
+                pickle.dump(file_data, f)
+    
+            print(f'save {results_file}')
+        
+        def next_frame() -> None:
+            """
+            Plots the next frame of the results
+            """
+            self.frame+=1
+            a.clear()
+            for axis in axes_list:
+                axis.clear()
+            plot_cheetah(self.frame, self.points_3d_df, self.points_2d_df)
 
-            skel_dict["links"] = links_list
-            skel_dict["dofs"] = dof_dict
-            skel_dict["positions"] = parts_dict
-            marker_arr = []
-
-            markers =  pt.get_bodyparts(controller.project_dir)
-            for part in parts_dict:
-                if part in markers:
-                    marker_arr.append(part)
-                
-            skel_dict["markers"] = marker_arr
-
-            print(skel_dict)
+        def prev_frame() -> None:
+            """
+            Plots the previous frame of the results
+            """
+            self.frame-=1
+            a.clear()
+            for axis in axes_list:
+                axis.clear()
+            plot_cheetah(self.frame, self.points_3d_df, self.points_2d_df)
+        
+        def update_spins(self) -> None:
+            part = combo_move.get()
+            x_free.set(parts_dict[part][0])
+            y_free.set(parts_dict[part][1])
+            z_free.set(parts_dict[part][2])
 
         # --- Define and place GUI components ---
 
@@ -378,12 +416,13 @@ class PageOne(tk.Frame):
 
         combo_move = ttk.Combobox(self, values=["Empty"])
         combo_move.place(relx=0.5,rely=0.6, anchor = "center")
+        combo_move.bind("<<ComboboxSelected>>", update_spins)
 
-        x_spin = tk.Spinbox(self, from_=-10, to=10, increment=0.01)
+        x_spin = tk.Spinbox(self, from_=-10, to=10, increment=0.01, textvariable=x_free, format = "%.2f")
         x_spin.place(relx=0.5, rely=0.65, anchor="center")
-        y_spin = tk.Spinbox(self, from_=-10, to=10, increment=0.01)
+        y_spin = tk.Spinbox(self, from_=-10, to=10, increment=0.01, textvariable=y_free, format = "%.2f")
         y_spin.place(relx=0.5, rely=0.7, anchor="center")
-        z_spin = tk.Spinbox(self, from_=-10, to=10, increment=0.01)
+        z_spin = tk.Spinbox(self, from_=-10, to=10, increment=0.01, textvariable=z_free, format = "%.2f")
         z_spin.place(relx=0.5, rely=0.75, anchor="center")
 
         label_x = tk.Label(self, text="x: ", font=controller.normal_font, background="#ffffff")
@@ -404,8 +443,17 @@ class PageOne(tk.Frame):
         button_left = tk.Button(self, text="<--", command=rotate_left)
         button_left.place(relx=0.45, rely=0.5, anchor="center")
 
-        button_save = tk.Button(self, text="Save Labels", command=save_skeleton)
+        button_save = tk.Button(self, text="Save Labels", command=save_labels)
         button_save.place(relx=0.55, rely=0.95, anchor="center")
+
+        button_next = tk.Button(self, text="next", command=next_frame)
+        button_next.place(relx=0.57, rely=0.9, anchor="center")
+
+        button_prev = tk.Button(self, text="Prev", command=prev_frame)
+        button_prev.place(relx=0.43, rely=0.9, anchor="center")
+
+        label_frame = tk.Label(self, text=self.frame, font=controller.normal_font, background="#ffffff")
+        label_frame.place(relx=0.5, rely=0.9, anchor="center")
 
 class PageTwo(tk.Frame):
 

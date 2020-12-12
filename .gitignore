@@ -1,0 +1,8 @@
+# folders to ignore
+._Trash
+.vscode
+__pycache__
+.__MACOSX
+
+# files to ignore
+.DS_STORE

@@ -181,12 +181,12 @@ class PageOne(tk.Frame):
         a = f.add_subplot(111, projection="3d")
         a.view_init(elev=20., azim=60)
 
-        f_2d_left = Figure(figsize=(4,4), dpi=100)
+        f_2d_left = Figure(figsize=(4,7), dpi=100)
         a_2d_1 = f_2d_left.add_subplot(311)
         a_2d_2 = f_2d_left.add_subplot(312)
         a_2d_3 = f_2d_left.add_subplot(313)
 
-        f_2d_right = Figure(figsize=(4,4), dpi=100)
+        f_2d_right = Figure(figsize=(4,7), dpi=100)
         a_2d_4 = f_2d_right.add_subplot(311)
         a_2d_5 = f_2d_right.add_subplot(312)
         a_2d_6 = f_2d_right.add_subplot(313)
@@ -207,9 +207,11 @@ class PageOne(tk.Frame):
 
         self.parts_dict = {}
         self.points_dict={}
+        self.changes_dict = {}
 
         self.traj_data={}
-        self.points_2d_df={}
+        self.points_2d = {}
+        self.vid_arr = []
 
         # --- Define functions to be used by GUI components ---
 
@@ -224,11 +226,11 @@ class PageOne(tk.Frame):
         def update_2d_views() -> None:
             canvas_2d_1 = FigureCanvasTkAgg(f_2d_left, self)
             canvas_2d_1.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
-            canvas_2d_1._tkcanvas.place(relx=0.2, rely=0.5, anchor="center")
+            canvas_2d_1._tkcanvas.place(relx=0.18, rely=0.45, anchor="center")
 
             canvas_2d_2 = FigureCanvasTkAgg(f_2d_right, self)
             canvas_2d_2.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
-            canvas_2d_2._tkcanvas.place(relx=0.8, rely=0.5, anchor="center")
+            canvas_2d_2._tkcanvas.place(relx=0.82, rely=0.45, anchor="center")
 
         def load_gt_data() -> None:
             """
@@ -238,10 +240,14 @@ class PageOne(tk.Frame):
             self.traj_data = load_pickle(data_dir)
             sba_dir = controller.sba_dir
             dirs = controller.dirs
+            for cam in range(1,7):
+                vid_dir = os.path.join(controller.project_dir, "cam"+str(cam)+".mp4")
+                cap = cv2.VideoCapture(vid_dir)
+                self.vid_arr.append(cap)
 
             markers = self.markers
 
-            print(self.traj_data["positions"])
+            #print(self.traj_data["positions"])
             for i,frame in enumerate(self.traj_data["positions"]):
                 if not np.isnan(frame[0][0]):
                     self.frame=i
@@ -293,13 +299,12 @@ class PageOne(tk.Frame):
                 cam=i+1
                 #print("CAM"+str(cam))
                 vid_dir = os.path.join(controller.project_dir, "cam"+str(cam)+".mp4")
-                cap = cv2.VideoCapture(vid_dir)
+                cap = self.vid_arr[i]
                 cap.set(cv2.CAP_PROP_POS_FRAMES, self.frame)
                 ret, image = cap.read()
                 RGB_img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
                 axis.imshow(RGB_img)
                 pts_2d_cam = calib.project_points_fisheye(pts, K_arr[i],D_arr[i],R_arr[i],t_arr[i])
-                print(pts_2d_cam)
                 x_s = []
                 y_s = []
                 for point in pts_2d_cam:
@@ -307,6 +312,7 @@ class PageOne(tk.Frame):
                         axis.scatter(point[0], point[1], s=10)
                         x_s.append(point[0])
                         y_s.append(point[1])
+                self.points_2d[self.frame,cam] = pts_2d_cam
                 minx = np.min(x_s)*0.9
                 miny = np.min(y_s)*0.9
                 maxx = np.max(x_s)*1.1
@@ -354,6 +360,12 @@ class PageOne(tk.Frame):
             
             self.traj_data["positions"][frame][index] = [new_x, new_y, new_z]
 
+            old_x = self.parts_dict[part_to_move][0]
+            old_y = self.parts_dict[part_to_move][1]
+            old_z = self.parts_dict[part_to_move][2]
+
+            self.changes_dict[part_to_move] = [new_x-old_x, new_y-old_y, new_z-old_z]
+
             self.points_dict[part_to_move] = a.scatter(new_x, new_y, new_z)
             self.parts_dict[part_to_move] = [new_x, new_y, new_z]
 
@@ -364,12 +376,19 @@ class PageOne(tk.Frame):
             Writes the gt frames to a pickle file
             """
             project_dir = controller.project_dir
-            results_file = os.path.join(project_dir, "3D_GT.pickle")
-            file_data = self.traj_data["positions"]
-            with open(results_file, 'wb') as f:
-                pickle.dump(file_data, f)
+            results_file3d = os.path.join(project_dir, "3D_GT.pickle")
+            file_data3d = self.traj_data["positions"]
+            results_file2d = os.path.join(project_dir, "2D_reprojected_GT.pickle")
+            file_data2d = self.points_2d
+
+            with open(results_file3d, 'wb') as f:
+                pickle.dump(file_data3d, f)
+
+            with open(results_file2d, 'wb') as f:
+                pickle.dump(file_data2d, f)
     
-            print(f'save {results_file}')
+            print(f'Saved {results_file3d}')
+            print(f'Saved {results_file2d}')
         
         def next_frame() -> None:
             """
@@ -391,6 +410,27 @@ class PageOne(tk.Frame):
                 axis.clear()
             plot_cheetah(self.frame)
         
+        def propagate_changes() -> None:
+            """
+            Propagates the changes to x, y, and z for each body part to the remaining frames
+            """
+            for i in range(self.frame+1, len(self.traj_data["positions"])):
+                for part_index in range(len(self.traj_data["positions"][i])):
+                    if self.markers[part_index] in self.changes_dict:
+                        self.traj_data["positions"][i][part_index][0] += self.changes_dict[self.markers[part_index]][0]
+                        self.traj_data["positions"][i][part_index][1] += self.changes_dict[self.markers[part_index]][1]
+                        self.traj_data["positions"][i][part_index][2] += self.changes_dict[self.markers[part_index]][2]
+            
+            print("Propagated! :D")
+
+        def goto_frame() -> None:
+            frame_to_go = frame_spin.get()
+            self.frame = int(frame_to_go)
+            a.clear()
+            for axis in axes_list:
+                axis.clear()
+            plot_cheetah(self.frame)
+        
         def update_spins(event) -> None:
             part = combo_move.get()
             x_free.set(self.parts_dict[part][0])
@@ -405,11 +445,17 @@ class PageOne(tk.Frame):
         combo_move.place(relx=0.5,rely=0.6, anchor = "center")
         combo_move.bind("<<ComboboxSelected>>", update_spins)
 
-        x_spin = tk.Spinbox(self, from_=-10, to=10, increment=0.01, textvariable=x_free, format = "%.2f")
+        frame_spin = tk.Spinbox(self, from_=0, to=500, increment=1, format = f"%.0f")
+        frame_spin.place(relx=0.2, rely=0.95, anchor="center")
+
+        button_go = tk.Button(self, text="Go", command=goto_frame)
+        button_go.place(relx=0.27, rely=0.95, anchor="center")
+
+        x_spin = tk.Spinbox(self, from_=-10, to=10, increment=0.01, textvariable=x_free, format = f"%.2f")
         x_spin.place(relx=0.5, rely=0.65, anchor="center")
-        y_spin = tk.Spinbox(self, from_=-10, to=10, increment=0.01, textvariable=y_free, format = "%.2f")
+        y_spin = tk.Spinbox(self, from_=-10, to=10, increment=0.01, textvariable=y_free, format = f"%.2f")
         y_spin.place(relx=0.5, rely=0.7, anchor="center")
-        z_spin = tk.Spinbox(self, from_=-10, to=10, increment=0.01, textvariable=z_free, format = "%.2f")
+        z_spin = tk.Spinbox(self, from_=-10, to=10, increment=0.01, textvariable=z_free, format = f"%.2f")
         z_spin.place(relx=0.5, rely=0.75, anchor="center")
 
         label_x = tk.Label(self, text="x: ", font=controller.normal_font, background="#ffffff")
@@ -424,6 +470,9 @@ class PageOne(tk.Frame):
 
         button = tk.Button(self, text="Load Points", command=load_gt_data)
         button.place(relx=0.45, rely=0.95, anchor="center")
+
+        button = tk.Button(self, text="Propagate Changes", command=propagate_changes)
+        button.place(relx=0.5, rely=0.55, anchor="center")
 
         button_right = tk.Button(self, text="-->", command=rotate_right)
         button_right.place(relx=0.55, rely=0.5, anchor="center")
@@ -578,5 +627,5 @@ class PageTwo(tk.Frame):
 if __name__ == "__main__":
     app = Application()
     app.geometry("1280x720")
-    app.title("Final Year Project")
+    app.title("AcinoNet Viewer")
     app.mainloop()

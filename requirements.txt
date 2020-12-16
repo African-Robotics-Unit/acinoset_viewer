@@ -1,7 +1,6 @@
 ipython
 ipython-genutils
 matplotlib
-numpy
 opencv-python-headless
 h5py
 pandas>=1.0.1
@@ -10,4 +9,4 @@ python-dateutil
 pyyaml
 requests
 ruamel.yaml>=0.15.0
-setuptools
+nptyping==0.3.1

@@ -11,3 +11,4 @@ pyyaml
 requests
 ruamel.yaml>=0.15.0
 nptyping==0.3.1
+PyQt5

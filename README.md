@@ -6,8 +6,8 @@ This is a repository for a ground truth data viewer/modifier for the AcinoNet ch
 
 ## Requirements
 
-#TODO
+`pip install -r requirements.txt`
 
 ## Usage
 
-#TODO
+`cd .. / src ` run `python3 gui.py` to launch

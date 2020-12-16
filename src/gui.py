@@ -211,6 +211,7 @@ class PageOne(tk.Frame):
 
         self.traj_data={}
         self.points_2d = {}
+        self.original_pos = {}
         self.vid_arr = []
 
         # --- Define functions to be used by GUI components ---
@@ -238,6 +239,7 @@ class PageOne(tk.Frame):
             """
             data_dir = os.path.join(controller.project_dir, "traj_opt.pickle")
             self.traj_data = load_pickle(data_dir)
+            self.original_pos = load_pickle(data_dir)
             sba_dir = controller.sba_dir
             dirs = controller.dirs
             for cam in range(1,7):
@@ -271,6 +273,9 @@ class PageOne(tk.Frame):
             self.parts_dict = {}
             self.points_dict = {}
             a.clear()
+            a.set_xlabel('X')
+            a.set_ylabel('Y')
+            a.set_zlabel('Z')
             label_frame.configure(text=frame)
 
             markers = self.markers
@@ -358,13 +363,16 @@ class PageOne(tk.Frame):
             point_to_move = self.points_dict[part_to_move]
             point_to_move.remove()
             
+            old_x = self.original_pos["positions"][frame][index][0]
+            old_y = self.original_pos["positions"][frame][index][1]
+            old_z = self.original_pos["positions"][frame][index][2]
+
+            print([old_x, old_y, old_z])
+
             self.traj_data["positions"][frame][index] = [new_x, new_y, new_z]
 
-            old_x = self.parts_dict[part_to_move][0]
-            old_y = self.parts_dict[part_to_move][1]
-            old_z = self.parts_dict[part_to_move][2]
-
             self.changes_dict[part_to_move] = [new_x-old_x, new_y-old_y, new_z-old_z]
+            print(self.changes_dict[part_to_move])
 
             self.points_dict[part_to_move] = a.scatter(new_x, new_y, new_z)
             self.parts_dict[part_to_move] = [new_x, new_y, new_z]
@@ -412,14 +420,18 @@ class PageOne(tk.Frame):
         
         def propagate_changes() -> None:
             """
-            Propagates the changes to x, y, and z for each body part to the remaining frames
+            Propagates the changes to x, y, and z for each body part to the remaining frames. Not used any more
             """
+            #print(len(self.traj_data["positions"]))
+            part_to_move = combo_move.get()
             for i in range(self.frame+1, len(self.traj_data["positions"])):
-                for part_index in range(len(self.traj_data["positions"][i])):
-                    if self.markers[part_index] in self.changes_dict:
-                        self.traj_data["positions"][i][part_index][0] += self.changes_dict[self.markers[part_index]][0]
-                        self.traj_data["positions"][i][part_index][1] += self.changes_dict[self.markers[part_index]][1]
-                        self.traj_data["positions"][i][part_index][2] += self.changes_dict[self.markers[part_index]][2]
+                part_index = self.markers.index(part_to_move)
+                if part_to_move in self.changes_dict:
+                    print(self.traj_data["positions"][i][part_index])
+                    self.traj_data["positions"][i][part_index][0] += self.changes_dict[self.markers[part_index]][0]
+                    self.traj_data["positions"][i][part_index][1] += self.changes_dict[self.markers[part_index]][1]
+                    self.traj_data["positions"][i][part_index][2] += self.changes_dict[self.markers[part_index]][2]
+                    print(self.traj_data["positions"][i][part_index])
             
             print("Propagated! :D")
 
@@ -471,9 +483,6 @@ class PageOne(tk.Frame):
         button = tk.Button(self, text="Load Points", command=load_gt_data)
         button.place(relx=0.45, rely=0.95, anchor="center")
 
-        button = tk.Button(self, text="Propagate Changes", command=propagate_changes)
-        button.place(relx=0.5, rely=0.55, anchor="center")
-
         button_right = tk.Button(self, text="-->", command=rotate_right)
         button_right.place(relx=0.55, rely=0.5, anchor="center")
         button_left = tk.Button(self, text="<--", command=rotate_left)
@@ -492,6 +501,8 @@ class PageOne(tk.Frame):
         label_frame.place(relx=0.5, rely=0.9, anchor="center")
 
 class PageTwo(tk.Frame):
+
+    # --- Residual Code from another version, unimportant ---
 
     def __init__(self, parent, controller):
         """

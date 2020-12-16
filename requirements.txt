@@ -3,6 +3,7 @@ ipython-genutils
 matplotlib
 opencv-python-headless
 h5py
+scipy
 pandas>=1.0.1
 patsy
 python-dateutil

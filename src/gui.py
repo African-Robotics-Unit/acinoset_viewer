@@ -25,21 +25,28 @@ class Application(tk.Tk):
 
         self.title_font = tkfont.Font(family='Montserrat', size=18)
         self.normal_font = tkfont.Font(family='Montserrat', size=12)
-        self.project_dir = "No video folder chosen"
-        self.sba_dir = "No SBA file chosen"
+        self.project_dir = "No video folder selected"
+        self.sba_dir = "No SBA file selected"
+
+        #x = tk.Tk()
+        #W = x.winfo_screenwidth()*.8
+        #H = x.winfo_screenheight()*.8
 
         container = tk.Frame(self, width=1130, height=720)
         nav_bar = tk.Frame(self, width=150, height=720, background="#2c3e50")
+
+        #container = tk.Frame(self, width=W, height=H)
+        #nav_bar = tk.Frame(self, width=W*.1, height=H, background="#2c3e50")
         container.pack_propagate(False)
         nav_bar.pack_propagate(False)
         nav_bar.place(relx=0, rely=0)
         container.place(x=150,y=0)
-        
-        self.home_label = tk.Label(nav_bar, text="Setup", font=self.title_font, bg="#2c3e50", fg="#ffffff", width=150, cursor="hand2")
+
+        self.home_label = tk.Label(nav_bar, text="Load", font=self.title_font, bg="#2c3e50", fg="#ffffff", width=150, cursor="hand2")
         self.home_label.place(relx=0.5, y=30, anchor="center")
         self.build_label = tk.Label(nav_bar, text="Create", font=self.title_font, bg="#2c3e50", fg="#ffffff", width=150, cursor="hand2")
         self.build_label.place(relx=0.5, y=80, anchor="center")
-        self.analyse_label = tk.Label(nav_bar, text="Analyse", font=self.title_font, bg="#2c3e50", fg="#ffffff", width=150, cursor="hand2")
+        self.analyse_label = tk.Label(nav_bar, text="Analyze", font=self.title_font, bg="#2c3e50", fg="#ffffff", width=150, cursor="hand2")
         self.analyse_label.place(relx=0.5, y=130, anchor="center")
 
         self.home_label.bind("<Enter>", self.home_on_enter)
@@ -65,7 +72,7 @@ class Application(tk.Tk):
         self.show_frame("StartPage")
 
     # --- Binding events ---
-    
+
     def home(self, event):
         self.show_frame("StartPage")
 
@@ -108,7 +115,7 @@ class StartPage(tk.Frame):
         self.controller = controller
         self.pack_propagate(False)
         #combo_vids = ttk.Combobox(self, values=["- Select Video -"])
-        
+
         # --- Define functions to be used by GUI components ---
 
         def choose_folder():
@@ -163,7 +170,7 @@ class StartPage(tk.Frame):
         button1.place(relx=0.5, rely=0.45, anchor="center")
         label_sba = tk.Label(self, text=controller.sba_dir, font=controller.normal_font, bg="#ffffff")
         label_sba.place(relx=0.5, rely=0.5, anchor="center")
-        
+
 
 class PageOne(tk.Frame):
 
@@ -198,11 +205,11 @@ class PageOne(tk.Frame):
         y_free = tk.IntVar()
         z_free = tk.IntVar()
 
-        self.markers = ["l_eye", "r_eye", "nose", "neck_base", "spine", 
-            "tail_base", "tail1", "tail2", 
-            "l_shoulder", "l_front_knee","l_front_ankle", 
-            "r_shoulder", "r_front_knee", "r_front_ankle", 
-            "l_hip", "l_back_knee", "l_back_ankle", 
+        self.markers = ["l_eye", "r_eye", "nose", "neck_base", "spine",
+            "tail_base", "tail1", "tail2",
+            "l_shoulder", "l_front_knee","l_front_ankle",
+            "r_shoulder", "r_front_knee", "r_front_ankle",
+            "l_hip", "l_back_knee", "l_back_ankle",
             "r_hip", "r_back_knee", "r_back_ankle"]
 
         self.parts_dict = {}
@@ -223,7 +230,7 @@ class PageOne(tk.Frame):
             canvas = FigureCanvasTkAgg(f, self)
             canvas.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
             canvas._tkcanvas.place(relx=0.5, rely=0.2, anchor="center")
-            
+
         def update_2d_views() -> None:
             canvas_2d_1 = FigureCanvasTkAgg(f_2d_left, self)
             canvas_2d_1.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
@@ -254,12 +261,16 @@ class PageOne(tk.Frame):
                 if not np.isnan(frame[0][0]):
                     self.frame=i
                     break
+<<<<<<< HEAD
             
             print(self.traj_data["positions"])
+=======
+
+>>>>>>> 92dc206d3c3fe20d434508653d77b93bcbccbd7e
             print(self.frame)
             label_frame.configure(text=self.frame)
             plot_cheetah(self.frame)
-        
+
         def load_pickle(pickle_file):
             """
             Loads a dictionary from a saved skeleton .pickle file
@@ -268,7 +279,7 @@ class PageOne(tk.Frame):
                 data = pickle.load(handle)
 
             return(data)
-        
+
         def plot_cheetah(frame) -> None:
 
             self.parts_dict = {}
@@ -283,7 +294,7 @@ class PageOne(tk.Frame):
 
             K_arr, D_arr, R_arr, t_arr, _ = utils.load_scene(controller.sba_dir)
             D_arr = D_arr.reshape((-1,4))
-            
+
             links = [[0,2], [1,2], [2,3], [0,3], [1,3], [3,4], [4,5], [5,6], [6,7], [3,8], [8,9], [9,10], [3,11], [11,12], [12,13],
              [5, 14], [14,15], [15,16], [5,17], [17,18], [18,19]]
 
@@ -292,14 +303,14 @@ class PageOne(tk.Frame):
             for i in range(len(markers)):
                 self.parts_dict[markers[i]] = [pts[i][0], pts[i][1], pts[i][2]]
                 self.points_dict[markers[i]] = a.scatter(pts[i][0], pts[i][1], pts[i][2])
-            
+
             for link in links:
                 part1 = markers[link[0]]
                 part2 = markers[link[1]]
                 a.plot3D([self.parts_dict[part1][0], self.parts_dict[part2][0]],
                  [self.parts_dict[part1][1], self.parts_dict[part2][1]],
                  [self.parts_dict[part1][2], self.parts_dict[part2][2]], 'b')
-            
+
             for i, axis in enumerate(axes_list):
                 axis.clear()
                 cam=i+1
@@ -325,9 +336,9 @@ class PageOne(tk.Frame):
                 maxy = np.max(y_s)*1.1
                 axis.set_xlim(minx, maxx)
                 axis.set_ylim(maxy, miny)
-            
+
             combo_move.configure(values=markers)
-            
+
             update_canvas()
             update_2d_views()
 
@@ -338,7 +349,7 @@ class PageOne(tk.Frame):
             azimuth = a.azim
             a.view_init(elev=20., azim=azimuth+10)
             update_canvas()
-        
+
         def rotate_left() -> None:
             """
             Rotates the axes left
@@ -346,7 +357,7 @@ class PageOne(tk.Frame):
             azimuth = a.azim
             a.view_init(elev=20., azim=azimuth-10)
             update_canvas()
-        
+
         def move_point() -> None:
             """
             Moves/places the selected point to the defined x, y, z
@@ -363,7 +374,7 @@ class PageOne(tk.Frame):
 
             point_to_move = self.points_dict[part_to_move]
             point_to_move.remove()
-            
+
             old_x = self.original_pos["positions"][frame][index][0]
             old_y = self.original_pos["positions"][frame][index][1]
             old_z = self.original_pos["positions"][frame][index][2]
@@ -395,10 +406,10 @@ class PageOne(tk.Frame):
 
             with open(results_file2d, 'wb') as f:
                 pickle.dump(file_data2d, f)
-    
+
             print(f'Saved {results_file3d}')
             print(f'Saved {results_file2d}')
-        
+
         def next_frame() -> None:
             """
             Plots the next frame of the results
@@ -418,7 +429,7 @@ class PageOne(tk.Frame):
             for axis in axes_list:
                 axis.clear()
             plot_cheetah(self.frame)
-        
+
         def propagate_changes() -> None:
             """
             Propagates the changes to x, y, and z for each body part to the remaining frames. Not used any more
@@ -433,7 +444,7 @@ class PageOne(tk.Frame):
                     self.traj_data["positions"][i][part_index][1] += self.changes_dict[self.markers[part_index]][1]
                     self.traj_data["positions"][i][part_index][2] += self.changes_dict[self.markers[part_index]][2]
                     print(self.traj_data["positions"][i][part_index])
-            
+
             print("Propagated! :D")
 
         def goto_frame() -> None:
@@ -443,7 +454,7 @@ class PageOne(tk.Frame):
             for axis in axes_list:
                 axis.clear()
             plot_cheetah(self.frame)
-        
+
         def update_spins(event) -> None:
             part = combo_move.get()
             x_free.set(self.parts_dict[part][0])
@@ -481,7 +492,7 @@ class PageOne(tk.Frame):
         button_update = tk.Button(self, text="Move", command=move_point)
         button_update.place(relx=0.5, rely=0.8, anchor="center")
 
-        button = tk.Button(self, text="Load Points", command=load_gt_data)
+        button = tk.Button(self, text="Load Data", command=load_gt_data)
         button.place(relx=0.45, rely=0.95, anchor="center")
 
         button_right = tk.Button(self, text="-->", command=rotate_right)
@@ -489,10 +500,10 @@ class PageOne(tk.Frame):
         button_left = tk.Button(self, text="<--", command=rotate_left)
         button_left.place(relx=0.45, rely=0.5, anchor="center")
 
-        button_save = tk.Button(self, text="Save Labels", command=save_labels)
+        button_save = tk.Button(self, text="Save Data", command=save_labels)
         button_save.place(relx=0.55, rely=0.95, anchor="center")
 
-        button_next = tk.Button(self, text="next", command=next_frame)
+        button_next = tk.Button(self, text="Next", command=next_frame)
         button_next.place(relx=0.57, rely=0.9, anchor="center")
 
         button_prev = tk.Button(self, text="Prev", command=prev_frame)
@@ -525,7 +536,7 @@ class PageTwo(tk.Frame):
             azimuth = a.azim
             a.view_init(elev=20., azim=azimuth+10)
             update_canvas()
-        
+
         def rotate_left() -> None:
             """
             Rotates the axes left
@@ -550,7 +561,7 @@ class PageTwo(tk.Frame):
             a.set_ylim3d(6, 10)
             a.set_zlim3d(0,1)
             a.view_init(elev=20., azim=30)
-        
+
         def update(i):
             plot_results(i)
 
@@ -572,7 +583,7 @@ class PageTwo(tk.Frame):
             for i in range(len(markers)):
                 pose_dict[markers[i]] = [results["positions"][frame][i][0], results["positions"][frame][i][1], results["positions"][frame][i][2]]
                 a.scatter(results["positions"][frame][i][0], results["positions"][frame][i][1], results["positions"][frame][i][2])
-            
+
             for link in links:
                 if len(link)>1:
                     a.plot3D([pose_dict[link[0]][0], pose_dict[link[1]][0]],
@@ -580,7 +591,7 @@ class PageTwo(tk.Frame):
                     [pose_dict[link[0]][2], pose_dict[link[1]][2]])
 
             update_canvas()
-        
+
         def next_frame() -> None:
             """
             Plots the next frame of the results
@@ -596,14 +607,14 @@ class PageTwo(tk.Frame):
             self.current_frame-=1
             a.clear()
             plot_results(self.current_frame)
-        
+
         def play_animation() -> None:
             """
             Creates an animation or "slide show" of plotted results in the GUI
             """
-            ani = FuncAnimation(f, update, 19, 
+            ani = FuncAnimation(f, update, 19,
                                interval=40, blit=True)
-            writer = PillowWriter(fps=25)  
+            writer = PillowWriter(fps=25)
             ani.save("test.gif", writer=writer)
 
         # --- Define and place GUI components ---
@@ -628,7 +639,7 @@ class PageTwo(tk.Frame):
 
         button_anim = tk.Button(self, text="Animation", command=play_animation)
         button_anim.place(relx=0.5, rely=0.8, anchor="center")
-    
+
         label = tk.Label(self, text="Analyse", font=controller.title_font, background="#ffffff")
         label.place(relx=0, rely=0)
 

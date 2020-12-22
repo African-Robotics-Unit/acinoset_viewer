@@ -10,4 +10,3 @@ This is a repository for a ground truth data viewer/modifier for the AcinoNet ch
 
 ## Usage
 
-#TODO

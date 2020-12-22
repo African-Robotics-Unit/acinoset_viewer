@@ -255,6 +255,7 @@ class PageOne(tk.Frame):
                     self.frame=i
                     break
             
+            print(self.traj_data["positions"])
             print(self.frame)
             label_frame.configure(text=self.frame)
             plot_cheetah(self.frame)

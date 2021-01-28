@@ -124,7 +124,7 @@ class StartPage(tk.Frame):
             if len(controller.project_dir) > 0:
                 print("You chose %s" % controller.project_dir)
                 label_folder.configure(text=controller.project_dir)
-            dirs = glob.glob(os.path.join(controller.project_dir, "*.h5"))
+            dirs = glob.glob(os.path.join(controller.project_dir, "*.mp4"))
             print(dirs)
             controller.dirs = dirs
             #video_names = get_video_names(dirs)
@@ -261,12 +261,9 @@ class PageOne(tk.Frame):
                 if not np.isnan(frame[0][0]):
                     self.frame=i
                     break
-<<<<<<< HEAD
             
             print(self.traj_data["positions"])
-=======
 
->>>>>>> 92dc206d3c3fe20d434508653d77b93bcbccbd7e
             print(self.frame)
             label_frame.configure(text=self.frame)
             plot_cheetah(self.frame)
@@ -430,23 +427,6 @@ class PageOne(tk.Frame):
                 axis.clear()
             plot_cheetah(self.frame)
 
-        def propagate_changes() -> None:
-            """
-            Propagates the changes to x, y, and z for each body part to the remaining frames. Not used any more
-            """
-            #print(len(self.traj_data["positions"]))
-            part_to_move = combo_move.get()
-            for i in range(self.frame+1, len(self.traj_data["positions"])):
-                part_index = self.markers.index(part_to_move)
-                if part_to_move in self.changes_dict:
-                    print(self.traj_data["positions"][i][part_index])
-                    self.traj_data["positions"][i][part_index][0] += self.changes_dict[self.markers[part_index]][0]
-                    self.traj_data["positions"][i][part_index][1] += self.changes_dict[self.markers[part_index]][1]
-                    self.traj_data["positions"][i][part_index][2] += self.changes_dict[self.markers[part_index]][2]
-                    print(self.traj_data["positions"][i][part_index])
-
-            print("Propagated! :D")
-
         def goto_frame() -> None:
             frame_to_go = frame_spin.get()
             self.frame = int(frame_to_go)
@@ -523,129 +503,118 @@ class PageTwo(tk.Frame):
         tk.Frame.__init__(self, parent, height=720, width=1130, background="#ffffff")
         self.controller = controller
         self.pack_propagate(False)
-        self.current_frame = 0
 
-        f = Figure(figsize=(4,4), dpi=100)
-        a = f.add_subplot(111, projection="3d")
-        a.view_init(elev=20., azim=60)
+        # --- Initialise class-wide variables ---
 
-        def rotate_right() -> None:
+        f_2d_left = Figure(figsize=(4,7), dpi=100)
+        a_2d_1 = f_2d_left.add_subplot(311)
+        a_2d_2 = f_2d_left.add_subplot(312)
+        a_2d_3 = f_2d_left.add_subplot(313)
+
+        f_2d_right = Figure(figsize=(4,7), dpi=100)
+        a_2d_4 = f_2d_right.add_subplot(311)
+        a_2d_5 = f_2d_right.add_subplot(312)
+        a_2d_6 = f_2d_right.add_subplot(313)
+
+        axes_list = [a_2d_1, a_2d_2, a_2d_3, a_2d_4, a_2d_5, a_2d_6]
+
+        self.frame = 1
+        
+        self.changes_dict = {}
+
+        self.vid_arr = []
+
+        # --- Define functions to be used by GUI components ---
+
+        def update_2d_views() -> None:
+            canvas_2d_1 = FigureCanvasTkAgg(f_2d_left, self)
+            canvas_2d_1.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
+            canvas_2d_1._tkcanvas.place(relx=0.18, rely=0.45, anchor="center")
+
+            canvas_2d_2 = FigureCanvasTkAgg(f_2d_right, self)
+            canvas_2d_2.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
+            canvas_2d_2._tkcanvas.place(relx=0.82, rely=0.45, anchor="center")
+
+        def load_gt_data() -> None:
             """
-            Rotates the axes right
+            Loads the GT points from a given folder
             """
-            azimuth = a.azim
-            a.view_init(elev=20., azim=azimuth+10)
-            update_canvas()
+            for cam in range(1,7):
+                vid_dir = os.path.join(controller.project_dir, "cam"+str(cam)+".mp4")
+                cap = cv2.VideoCapture(vid_dir)
+                self.vid_arr.append(cap)
 
-        def rotate_left() -> None:
-            """
-            Rotates the axes left
-            """
-            azimuth = a.azim
-            a.view_init(elev=20., azim=azimuth-10)
-            update_canvas()
+            print(self.frame)
+            label_frame.configure(text=self.frame)
+            plot_cheetah(self.frame)
 
-        def update_canvas() -> None:
-            """
-            Replots canvas on the GUI with updated points
-            """
-            a.set_xlim3d(3, 7)
-            a.set_ylim3d(6, 10)
-            a.set_zlim3d(0,4)
-            canvas = FigureCanvasTkAgg(f, self)
-            canvas.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
-            canvas._tkcanvas.place(relx=0.5, rely=0.45, anchor="center")
+        def plot_cheetah(frame) -> None:
 
-        def init():
-            a.set_xlim3d(-1, 8)
-            a.set_ylim3d(6, 10)
-            a.set_zlim3d(0,1)
-            a.view_init(elev=20., azim=30)
+            self.parts_dict = {}
+            self.points_dict = {}
+            label_frame.configure(text=frame)
 
-        def update(i):
-            plot_results(i)
-
-        def plot_results(frame=0) -> None:
-            """
-            Plots results for the given skeleton (frame 0)
-            """
-            pose_dict = {}
-            currdir = os.getcwd()
-            skel_name = (field_name1.get())
-            skelly_dir = os.path.join(currdir, "skeletons", (skel_name + ".pickle"))
-            results_dir = os.path.join(currdir, "data", "results", (skel_name + ".pickle"))
-
-            skel_dict = bd.load_skeleton(skelly_dir)
-            results = an.load_pickle(results_dir)
-            links = skel_dict["links"]
-            markers = skel_dict["markers"]
-
-            for i in range(len(markers)):
-                pose_dict[markers[i]] = [results["positions"][frame][i][0], results["positions"][frame][i][1], results["positions"][frame][i][2]]
-                a.scatter(results["positions"][frame][i][0], results["positions"][frame][i][1], results["positions"][frame][i][2])
-
-            for link in links:
-                if len(link)>1:
-                    a.plot3D([pose_dict[link[0]][0], pose_dict[link[1]][0]],
-                     [pose_dict[link[0]][1], pose_dict[link[1]][1]],
-                    [pose_dict[link[0]][2], pose_dict[link[1]][2]])
-
-            update_canvas()
+            for i, axis in enumerate(axes_list):
+                axis.clear()
+                cam=i+1
+                #print("CAM"+str(cam))
+                vid_dir = os.path.join(controller.project_dir, "cam"+str(cam)+".mp4")
+                cap = self.vid_arr[i]
+                cap.set(cv2.CAP_PROP_POS_FRAMES, self.frame)
+                ret, image = cap.read()
+                if ret:
+                    RGB_img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                    axis.imshow(RGB_img)
+                else:
+                    print("That frame doesn't exist!")
+            
+            update_2d_views()
 
         def next_frame() -> None:
             """
             Plots the next frame of the results
             """
-            self.current_frame+=1
-            a.clear()
-            plot_results(self.current_frame)
+            self.frame+=1
+            for axis in axes_list:
+                axis.clear()
+            plot_cheetah(self.frame)
 
         def prev_frame() -> None:
             """
             Plots the previous frame of the results
             """
-            self.current_frame-=1
-            a.clear()
-            plot_results(self.current_frame)
+            self.frame-=1
+            for axis in axes_list:
+                axis.clear()
+            plot_cheetah(self.frame)
 
-        def play_animation() -> None:
-            """
-            Creates an animation or "slide show" of plotted results in the GUI
-            """
-            ani = FuncAnimation(f, update, 19,
-                               interval=40, blit=True)
-            writer = PillowWriter(fps=25)
-            ani.save("test.gif", writer=writer)
+        def goto_frame() -> None:
+            frame_to_go = frame_spin.get()
+            self.frame = int(frame_to_go)
+            for axis in axes_list:
+                axis.clear()
+            plot_cheetah(self.frame)
 
         # --- Define and place GUI components ---
 
-        update_canvas()
+        frame_spin = tk.Spinbox(self, from_=0, to=500, increment=1, format = f"%.0f")
+        frame_spin.place(relx=0.2, rely=0.95, anchor="center")
 
-        label_name = tk.Label(self, text="Enter skeleton name: ", font=controller.normal_font, background="#ffffff")
-        label_name.place(relx=0.4, rely=0.15, anchor = "center")
+        button_go = tk.Button(self, text="Go", command=goto_frame)
+        button_go.place(relx=0.27, rely=0.95, anchor="center")
 
-        field_name1 = tk.Entry(self)
-        field_name1.place(relx=0.6, rely=0.15, anchor="center")
+        button = tk.Button(self, text="Load Data", command=load_gt_data)
+        button.place(relx=0.5, rely=0.95, anchor="center")
 
         button_next = tk.Button(self, text="Next", command=next_frame)
-        button_next.place(relx=0.8, rely=0.3, anchor="center")
+        button_next.place(relx=0.57, rely=0.9, anchor="center")
+
         button_prev = tk.Button(self, text="Prev", command=prev_frame)
-        button_prev.place(relx=0.8, rely=0.4, anchor="center")
+        button_prev.place(relx=0.43, rely=0.9, anchor="center")
 
-        button_right = tk.Button(self, text="-->", command=rotate_right)
-        button_right.place(relx=0.3, rely=0.3, anchor="center")
-        button_left = tk.Button(self, text="<--", command=rotate_left)
-        button_left.place(relx=0.3, rely=0.4, anchor="center")
+        label_frame = tk.Label(self, text=self.frame, font=controller.normal_font, background="#ffffff")
+        label_frame.place(relx=0.5, rely=0.9, anchor="center")
 
-        button_anim = tk.Button(self, text="Animation", command=play_animation)
-        button_anim.place(relx=0.5, rely=0.8, anchor="center")
-
-        label = tk.Label(self, text="Analyse", font=controller.title_font, background="#ffffff")
-        label.place(relx=0, rely=0)
-
-        button_plot = tk.Button(self, text="Plot",
-                           command=plot_results)
-        button_plot.pack()
 
 if __name__ == "__main__":
     app = Application()

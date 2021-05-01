@@ -62,6 +62,7 @@ class Application(tk.Tk):
         self.analyse_label.bind("<Button-1>", self.analyse)
 
         self.frames = {}
+
         for F in (StartPage, PageOne, PageTwo):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
@@ -123,10 +124,21 @@ class StartPage(tk.Frame):
             controller.project_dir = filedialog.askdirectory(parent=self, initialdir=currdir, title='Please Select a Video Folder:')
             if len(controller.project_dir) > 0:
                 print("You chose %s" % controller.project_dir)
-                label_folder.configure(text=controller.project_dir)
+                label_folder.configure(text=os.path.normpath(controller.project_dir))
             dirs = glob.glob(os.path.join(controller.project_dir, "*.mp4"))
             print(dirs)
+            n_vids = len(dirs)
             controller.dirs = dirs
+
+            sba_folder = controller.project_dir.split("data")[1]
+            sba_folder = os.path.normpath(sba_folder)
+            sba_filepath = sba_folder.split(os.sep)[1]
+            print(sba_filepath)
+            full_sba = os.path.join(controller.project_dir.split(sba_filepath)[0], sba_filepath, "extrinsic_calib", str(n_vids)+"_cam_scene_sba.json")
+            print(f'Detected SBA file is {full_sba}')
+            if os.path.exists(os.path.normpath(full_sba)):
+                controller.sba_dir = os.path.normpath(full_sba)
+                label_sba.configure(text=controller.sba_dir)
             #video_names = get_video_names(dirs)
 
             #label_vids = tk.Label(self, text="Choose a video:", font=controller.normal_font, bg="#ffffff")
@@ -244,7 +256,7 @@ class PageOne(tk.Frame):
             """
             Loads the GT points from a given folder
             """
-            data_dir = os.path.join(controller.project_dir, "traj_opt.pickle")
+            data_dir = os.path.join(controller.project_dir, "fte", "fte.pickle")
             self.traj_data = load_pickle(data_dir)
             self.original_pos = load_pickle(data_dir)
             sba_dir = controller.sba_dir
@@ -262,7 +274,7 @@ class PageOne(tk.Frame):
                     self.frame=i
                     break
             
-            print(self.traj_data["positions"])
+            print(len(self.traj_data["positions"]))
 
             print(self.frame)
             label_frame.configure(text=self.frame)
@@ -311,16 +323,24 @@ class PageOne(tk.Frame):
             for i, axis in enumerate(axes_list):
                 axis.clear()
                 cam=i+1
-                #print("CAM"+str(cam))
+
                 vid_dir = os.path.join(controller.project_dir, "cam"+str(cam)+".mp4")
                 cap = self.vid_arr[i]
-                cap.set(cv2.CAP_PROP_POS_FRAMES, self.frame)
+                cam_frame = self.frame + self.traj_data["start_frame"]
+                cap.set(cv2.CAP_PROP_POS_FRAMES, cam_frame)
                 ret, image = cap.read()
                 RGB_img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
                 axis.imshow(RGB_img)
                 pts_2d_cam = calib.project_points_fisheye(pts, K_arr[i],D_arr[i],R_arr[i],t_arr[i])
+
+                width  = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+                height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+
+                #print(f'Video is {width} pixels by {height} pixels!')
+
                 x_s = []
                 y_s = []
+
                 for point in pts_2d_cam:
                     if not np.isnan(point[0]):
                         axis.scatter(point[0], point[1], s=10)
@@ -331,6 +351,14 @@ class PageOne(tk.Frame):
                 miny = np.min(y_s)*0.9
                 maxx = np.max(x_s)*1.1
                 maxy = np.max(y_s)*1.1
+                if maxx > width:
+                    maxx = width
+                if minx < 0:
+                    minx = 0
+                if maxy > height:
+                    maxy = height
+                if miny < 0:
+                    maxy = 0
                 axis.set_xlim(minx, maxx)
                 axis.set_ylim(maxy, miny)
 

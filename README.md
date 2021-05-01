@@ -28,9 +28,9 @@ NOTE: to proceed, ensure that all 6 CAM videos are placed in the same folder.
 
 To begin, while in the Setup tab:
 
-1.  "Chose Video Folder:" load the folder that has DLC.h5 files, videos, + `traj_opt.pickle file`
+1.  "Chose Video Folder:" load the folder that has DLC.h5 files, videos, and the `fte.pickle` file
 
-2.  "Chose SBA File:" select the folder with the file named `scene_sba.json`
+2.  "Chose SBA File:" select the associated `n_cam_scene_sba.json` file. If your data is structured as it is in the official dataset, this should be done automatically.
 
 Navigate to the Create tab and click "Load Data" to create/check 3D GT data.
 

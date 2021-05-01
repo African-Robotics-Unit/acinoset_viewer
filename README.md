@@ -1,8 +1,8 @@
-# AcinoNet Viewer
+# AcinoSet Viewer
 
 Author:     Daniel Joska
 
-This is a repository for a ground truth data viewer/modifier for the AcinoNet cheetah dataset.
+This is a repository for a ground truth data viewer/modifier for the AcinoSet cheetah dataset. The main repository for AcinoSet may be found [here](https://github.com/African-Robotics-Unit/AcinoSet).
 
 ## Installation
 
@@ -22,7 +22,7 @@ Enter the `src` directory by running:
 
 And simply run `python3 gui.py` to launch the GUI.
 
-NOTE: to proceed, ensure that all 6 CAM videos are placed in the same folder.
+NOTE: to proceed, ensure that all 6 CAM videos are placed in the same folder. It is highly recommended to retain the original folder structure from the official AcinoSet dataset.
 
 ### 3D GT Data Creation
 

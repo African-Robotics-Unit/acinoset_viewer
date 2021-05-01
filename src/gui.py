@@ -37,6 +37,7 @@ class Application(tk.Tk):
 
         #container = tk.Frame(self, width=W, height=H)
         #nav_bar = tk.Frame(self, width=W*.1, height=H, background="#2c3e50")
+        
         container.pack_propagate(False)
         nav_bar.pack_propagate(False)
         nav_bar.place(relx=0, rely=0)
@@ -130,15 +131,22 @@ class StartPage(tk.Frame):
             n_vids = len(dirs)
             controller.dirs = dirs
 
-            sba_folder = controller.project_dir.split("data")[1]
-            sba_folder = os.path.normpath(sba_folder)
-            sba_filepath = sba_folder.split(os.sep)[1]
-            print(sba_filepath)
-            full_sba = os.path.join(controller.project_dir.split(sba_filepath)[0], sba_filepath, "extrinsic_calib", str(n_vids)+"_cam_scene_sba.json")
-            print(f'Detected SBA file is {full_sba}')
-            if os.path.exists(os.path.normpath(full_sba)):
-                controller.sba_dir = os.path.normpath(full_sba)
-                label_sba.configure(text=controller.sba_dir)
+            try:
+
+                sba_folder = controller.project_dir.split("data")[1]
+                sba_folder = os.path.normpath(sba_folder)
+                sba_filepath = sba_folder.split(os.sep)[1]
+                print(sba_filepath)
+                full_sba = os.path.join(controller.project_dir.split(sba_filepath)[0], sba_filepath, "extrinsic_calib", str(n_vids)+"_cam_scene_sba.json")
+                print(f'Detected SBA file is {full_sba}')
+
+                if os.path.exists(os.path.normpath(full_sba)):
+                    controller.sba_dir = os.path.normpath(full_sba)
+                    label_sba.configure(text=controller.sba_dir)
+                else:
+                    print("The associated SBA file could not be located!")
+            except:
+                print("That folder does not appear to be a valid video folder!")
             #video_names = get_video_names(dirs)
 
             #label_vids = tk.Label(self, text="Choose a video:", font=controller.normal_font, bg="#ffffff")

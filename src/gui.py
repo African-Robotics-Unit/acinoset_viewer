@@ -225,12 +225,12 @@ class PageOne(tk.Frame):
         y_free = tk.IntVar()
         z_free = tk.IntVar()
 
-        self.markers = ["l_eye", "r_eye", "nose", "neck_base", "spine",
+        self.markers = ["nose", "r_eye", "l_eye", "neck_base", "spine",
             "tail_base", "tail1", "tail2",
-            "l_shoulder", "l_front_knee","l_front_ankle",
-            "r_shoulder", "r_front_knee", "r_front_ankle",
-            "l_hip", "l_back_knee", "l_back_ankle",
-            "r_hip", "r_back_knee", "r_back_ankle"]
+            "r_shoulder", "r_front_knee", "r_front_ankle", "r_front_paw",
+            "l_shoulder", "l_front_knee","l_front_ankle", "l_front_paw",
+            "r_hip", "r_back_knee", "r_back_ankle", "r_back_paw",
+            "l_hip", "l_back_knee", "l_back_ankle", "l_back_paw"]
 
         self.parts_dict = {}
         self.points_dict={}
@@ -282,7 +282,7 @@ class PageOne(tk.Frame):
                     self.frame=i
                     break
             
-            print(len(self.traj_data["positions"]))
+            print(len(self.traj_data["positions"][0]))
 
             print(self.frame)
             label_frame.configure(text=self.frame)
@@ -312,8 +312,11 @@ class PageOne(tk.Frame):
             K_arr, D_arr, R_arr, t_arr, _ = utils.load_scene(controller.sba_dir)
             D_arr = D_arr.reshape((-1,4))
 
-            links = [[0,2], [1,2], [2,3], [0,3], [1,3], [3,4], [4,5], [5,6], [6,7], [3,8], [8,9], [9,10], [3,11], [11,12], [12,13],
-             [5, 14], [14,15], [15,16], [5,17], [17,18], [18,19]]
+            links = [[0,2], [0,1], [0,3], [2,3], [1,3], [3,4], [4,5], [5,6], [6,7], 
+            [3,8], [8,9], [9,10], [10,11], 
+            [3,12], [12,13], [13,14], [14,15],  
+            [5, 16], [16,17], [17,18], [18,19], 
+            [5,20], [20,21], [21,22], [22,23]]
 
             pts = self.traj_data["positions"][self.frame]
 
@@ -499,11 +502,11 @@ class PageOne(tk.Frame):
         z_spin.place(relx=0.5, rely=0.75, anchor="center")
 
         label_x = tk.Label(self, text="x: ", font=controller.normal_font, background="#ffffff")
-        label_x.place(relx=0.43, rely=0.65, anchor="center")
+        label_x.place(relx=0.4, rely=0.65, anchor="center")
         label_y = tk.Label(self, text="y: ", font=controller.normal_font, background="#ffffff")
-        label_y.place(relx=0.43, rely=0.7, anchor="center")
+        label_y.place(relx=0.4, rely=0.7, anchor="center")
         label_z = tk.Label(self, text="z: ", font=controller.normal_font, background="#ffffff")
-        label_z.place(relx=0.43, rely=0.75, anchor="center")
+        label_z.place(relx=0.4, rely=0.75, anchor="center")
 
         button_update = tk.Button(self, text="Move", command=move_point)
         button_update.place(relx=0.5, rely=0.8, anchor="center")
@@ -655,5 +658,5 @@ class PageTwo(tk.Frame):
 if __name__ == "__main__":
     app = Application()
     app.geometry("1280x720")
-    app.title("AcinoNet Viewer")
+    app.title("AcinoSet Viewer")
     app.mainloop()

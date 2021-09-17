@@ -13,6 +13,9 @@ import pickle
 import numpy as np
 import cv2
 from matplotlib.animation import FuncAnimation, PillowWriter, Animation
+import matplotlib as mpl
+import matplotlib.cm as cm
+import cycler
 
 class Application(tk.Tk):
 
@@ -37,7 +40,7 @@ class Application(tk.Tk):
 
         #container = tk.Frame(self, width=W, height=H)
         #nav_bar = tk.Frame(self, width=W*.1, height=H, background="#2c3e50")
-        
+
         container.pack_propagate(False)
         nav_bar.pack_propagate(False)
         nav_bar.place(relx=0, rely=0)
@@ -232,6 +235,10 @@ class PageOne(tk.Frame):
             "r_hip", "r_back_knee", "r_back_ankle", "r_back_paw",
             "l_hip", "l_back_knee", "l_back_ankle", "l_back_paw"]
 
+        # Set the marker colour map to JET.
+        marker_colors = cm.jet(np.linspace(0, 1, len(self.markers)))
+        mpl.rcParams['axes.prop_cycle'] = cycler.cycler('color', marker_colors)
+
         self.parts_dict = {}
         self.points_dict={}
         self.changes_dict = {}
@@ -281,7 +288,7 @@ class PageOne(tk.Frame):
                 if not np.isnan(frame[0][0]):
                     self.frame=i
                     break
-            
+
             print(len(self.traj_data["positions"][0]))
 
             print(self.frame)
@@ -312,10 +319,10 @@ class PageOne(tk.Frame):
             K_arr, D_arr, R_arr, t_arr, _ = utils.load_scene(controller.sba_dir)
             D_arr = D_arr.reshape((-1,4))
 
-            links = [[0,2], [0,1], [0,3], [2,3], [1,3], [3,4], [4,5], [5,6], [6,7], 
-            [3,8], [8,9], [9,10], [10,11], 
-            [3,12], [12,13], [13,14], [14,15],  
-            [5, 16], [16,17], [17,18], [18,19], 
+            links = [[0,2], [0,1], [0,3], [2,3], [1,3], [3,4], [4,5], [5,6], [6,7],
+            [3,8], [8,9], [9,10], [10,11],
+            [3,12], [12,13], [13,14], [14,15],
+            [5, 16], [16,17], [17,18], [18,19],
             [5,20], [20,21], [21,22], [22,23]]
 
             pts = self.traj_data["positions"][self.frame]
@@ -329,7 +336,7 @@ class PageOne(tk.Frame):
                 part2 = markers[link[1]]
                 a.plot3D([self.parts_dict[part1][0], self.parts_dict[part2][0]],
                  [self.parts_dict[part1][1], self.parts_dict[part2][1]],
-                 [self.parts_dict[part1][2], self.parts_dict[part2][2]], 'b')
+                 [self.parts_dict[part1][2], self.parts_dict[part2][2]], color='black')
 
             for i, axis in enumerate(axes_list):
                 axis.clear()
@@ -558,7 +565,7 @@ class PageTwo(tk.Frame):
         axes_list = [a_2d_1, a_2d_2, a_2d_3, a_2d_4, a_2d_5, a_2d_6]
 
         self.frame = 1
-        
+
         self.changes_dict = {}
 
         self.vid_arr = []
@@ -606,7 +613,7 @@ class PageTwo(tk.Frame):
                     axis.imshow(RGB_img)
                 else:
                     print("That frame doesn't exist!")
-            
+
             update_2d_views()
 
         def next_frame() -> None:
